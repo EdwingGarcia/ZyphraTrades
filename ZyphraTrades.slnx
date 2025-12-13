@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ZyphraTrades.Application/ZyphraTrades.Application.csproj" Id="a7e4ba93-4f8e-4855-a0b1-bff1df96214c" />
+  <Project Path="ZyphraTrades.Domain/ZyphraTrades.Domain.csproj" Id="658b6186-59eb-4945-890b-a2779719ca1a" />
+  <Project Path="ZyphraTrades.Infrastructure/ZyphraTrades.Infrastructure.csproj" Id="2a03fb6a-acf2-442d-9983-f702743ae992" />
+  <Project Path="ZyphraTrades/ZyphraTrades.Presentation.csproj" />
+</Solution>
