@@ -1,7 +1,8 @@
-﻿using System.IO;
-using System.Windows;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.IO;
+using System.Windows;
 using ZyphraTrades.Infrastructure;
 using ZyphraTrades.Infrastructure.Persistence;
 
@@ -37,7 +38,7 @@ public partial class App : System.Windows.Application
         using (var scope = _host.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            await db.Database.EnsureCreatedAsync();
+            await db.Database.MigrateAsync();
         }
 
         _host.Services.GetRequiredService<MainWindow>().Show();
