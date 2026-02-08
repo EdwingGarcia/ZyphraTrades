@@ -3,8 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
 using System.Windows;
+using ZyphraTrades.Application.Services;
 using ZyphraTrades.Infrastructure;
 using ZyphraTrades.Infrastructure.Persistence;
+using ZyphraTrades.Presentation.ViewModels;
 
 namespace ZyphraTrades.Presentation;
 
@@ -19,8 +21,7 @@ public partial class App : System.Windows.Application
         var dbPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ZyphraTrades",
-            "zyphra.db"
-        );
+            "zyphra.db");
 
         Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
         var conn = $"Data Source={dbPath}";
@@ -28,13 +29,16 @@ public partial class App : System.Windows.Application
         _host = Host.CreateDefaultBuilder()
             .ConfigureServices(services =>
             {
+                // Infrastructure (DbContext + Repos + Services)
                 services.AddInfrastructure(conn);
 
-                services.AddSingleton<MainWindow>();
+                // Presentation
                 services.AddSingleton<MainViewModel>();
+                services.AddSingleton<MainWindow>();
             })
             .Build();
 
+        // Auto-migrate
         using (var scope = _host.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
