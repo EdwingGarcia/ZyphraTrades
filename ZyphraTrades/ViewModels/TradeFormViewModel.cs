@@ -37,7 +37,11 @@ public sealed class TradeFormViewModel : ViewModelBase
     public string Symbol { get => _symbol; set => SetProperty(ref _symbol, value); }
 
     private TradeSide _selectedSide = TradeSide.Buy;
-    public TradeSide SelectedSide { get => _selectedSide; set => SetProperty(ref _selectedSide, value); }
+    public TradeSide SelectedSide
+    {
+        get => _selectedSide;
+        set { if (SetProperty(ref _selectedSide, value)) RecalculatePnL(); }
+    }
 
     private string? _selectedTimeframe;
     public string? SelectedTimeframe { get => _selectedTimeframe; set => SetProperty(ref _selectedTimeframe, value); }
@@ -62,17 +66,21 @@ public sealed class TradeFormViewModel : ViewModelBase
     public decimal EntryPrice
     {
         get => _entryPrice;
-        set { if (SetProperty(ref _entryPrice, value)) RecalculateRR(); }
+        set { if (SetProperty(ref _entryPrice, value)) { RecalculateRR(); RecalculatePnL(); } }
     }
 
     private decimal? _exitPrice;
-    public decimal? ExitPrice { get => _exitPrice; set => SetProperty(ref _exitPrice, value); }
+    public decimal? ExitPrice
+    {
+        get => _exitPrice;
+        set { if (SetProperty(ref _exitPrice, value)) RecalculatePnL(); }
+    }
 
     private decimal? _stopLoss;
     public decimal? StopLoss
     {
         get => _stopLoss;
-        set { if (SetProperty(ref _stopLoss, value)) RecalculateRR(); }
+        set { if (SetProperty(ref _stopLoss, value)) { RecalculateRR(); RecalculatePnL(); } }
     }
 
     private decimal? _takeProfit;
@@ -85,49 +93,58 @@ public sealed class TradeFormViewModel : ViewModelBase
     private decimal? _riskRewardDisplay;
     public decimal? RiskRewardDisplay { get => _riskRewardDisplay; private set => SetProperty(ref _riskRewardDisplay, value); }
 
-    // ══════════════════════ Position & Costs ══════════════════════
-
-    private decimal? _positionSize;
-    public decimal? PositionSize { get => _positionSize; set => SetProperty(ref _positionSize, value); }
-
-    private decimal? _fees;
-    public decimal? Fees { get => _fees; set => SetProperty(ref _fees, value); }
-
-    private decimal? _commission;
-    public decimal? Commission { get => _commission; set => SetProperty(ref _commission, value); }
-
-    private decimal? _swap;
-    public decimal? Swap { get => _swap; set => SetProperty(ref _swap, value); }
-
-    private decimal? _slippage;
-    public decimal? Slippage { get => _slippage; set => SetProperty(ref _slippage, value); }
-
-    // ══════════════════════ PnL ══════════════════════
+    // ══════════════════════ PnL (auto-calculado) ══════════════════════
 
     private decimal _grossPnl;
-    public decimal GrossPnl { get => _grossPnl; set => SetProperty(ref _grossPnl, value); }
+    public decimal GrossPnl { get => _grossPnl; private set => SetProperty(ref _grossPnl, value); }
 
     private decimal _netPnl;
-    public decimal NetPnl { get => _netPnl; set => SetProperty(ref _netPnl, value); }
+    public decimal NetPnl { get => _netPnl; private set => SetProperty(ref _netPnl, value); }
 
     // ══════════════════════ Risk Management ══════════════════════
 
+    /// <summary>true = risk is entered as % of account, false = risk as $ amount.</summary>
+    private bool _riskAsPercent;
+    public bool RiskAsPercent
+    {
+        get => _riskAsPercent;
+        set
+        {
+            if (SetProperty(ref _riskAsPercent, value))
+            {
+                OnPropertyChanged(nameof(RiskAsPercent));
+                RecalculateRiskFromMode();
+            }
+        }
+    }
+
+    private decimal? _riskPercent;
+    public decimal? RiskPercent
+    {
+        get => _riskPercent;
+        set { if (SetProperty(ref _riskPercent, value)) RecalculateRiskFromPercent(); }
+    }
+
     private decimal? _riskAmount;
-    public decimal? RiskAmount { get => _riskAmount; set => SetProperty(ref _riskAmount, value); }
+    public decimal? RiskAmount
+    {
+        get => _riskAmount;
+        set { if (SetProperty(ref _riskAmount, value)) RecalculatePnL(); }
+    }
 
     private decimal? _riskR;
-    public decimal? RiskR { get => _riskR; set => SetProperty(ref _riskR, value); }
+    public decimal? RiskR { get => _riskR; private set => SetProperty(ref _riskR, value); }
 
     private decimal? _resultR;
-    public decimal? ResultR { get => _resultR; set => SetProperty(ref _resultR, value); }
+    public decimal? ResultR { get => _resultR; private set => SetProperty(ref _resultR, value); }
 
-    // ══════════════════════ Account ══════════════════════
+    // ══════════════════════ Account (auto-calculado) ══════════════════════
 
     private decimal? _accountBalanceBefore;
-    public decimal? AccountBalanceBefore { get => _accountBalanceBefore; set => SetProperty(ref _accountBalanceBefore, value); }
+    public decimal? AccountBalanceBefore { get => _accountBalanceBefore; set { if (SetProperty(ref _accountBalanceBefore, value)) { RecalculateBalance(); RecalculateRiskFromPercent(); } } }
 
     private decimal? _accountBalanceAfter;
-    public decimal? AccountBalanceAfter { get => _accountBalanceAfter; set => SetProperty(ref _accountBalanceAfter, value); }
+    public decimal? AccountBalanceAfter { get => _accountBalanceAfter; private set => SetProperty(ref _accountBalanceAfter, value); }
 
     // ══════════════════════ Psychology (PNL-focused) ══════════════════════
 
@@ -191,6 +208,20 @@ public sealed class TradeFormViewModel : ViewModelBase
     /// <summary>Partial take-profits for this trade.</summary>
     public ObservableCollection<PartialTakeProfitItem> Partials { get; } = new();
 
+    // ── Secciones colapsables ──
+    private bool _showPsychology;
+    public bool ShowPsychology { get => _showPsychology; set => SetProperty(ref _showPsychology, value); }
+
+    private bool _showJournal;
+    public bool ShowJournal { get => _showJournal; set => SetProperty(ref _showJournal, value); }
+
+    private bool _showPartials;
+    public bool ShowPartials { get => _showPartials; set => SetProperty(ref _showPartials, value); }
+
+    public ICommand TogglePsychologyCommand { get; private set; } = null!;
+    public ICommand ToggleJournalCommand { get; private set; } = null!;
+    public ICommand TogglePartialsCommand { get; private set; } = null!;
+
     // ── Checklist summary ──
     public int CheckedCount => ChecklistItems.Count(i => i.IsChecked);
     public int ChecklistTotal => ChecklistItems.Count;
@@ -236,6 +267,11 @@ public sealed class TradeFormViewModel : ViewModelBase
         AddPartialCommand = new RelayCommand(_ => AddPartial());
         RemovePartialCommand = new RelayCommand(RemovePartial);
         BrowseScreenshotCommand = new RelayCommand(BrowseScreenshot);
+
+        // Toggles para secciones colapsables
+        TogglePsychologyCommand = new RelayCommand(_ => ShowPsychology = !ShowPsychology);
+        ToggleJournalCommand = new RelayCommand(_ => ShowJournal = !ShowJournal);
+        TogglePartialsCommand = new RelayCommand(_ => ShowPartials = !ShowPartials);
     }
 
     // ══════════════════════ Dynamic Loading ══════════════════════
@@ -283,6 +319,12 @@ public sealed class TradeFormViewModel : ViewModelBase
         var settings = await _settings.GetSettingsAsync();
         if (AccountBalanceBefore is null && settings.DefaultAccountBalance.HasValue)
             AccountBalanceBefore = settings.DefaultAccountBalance;
+
+        // Aplicar parámetros dinámicos desde ajustes (si el usuario no los ha modificado)
+        if (string.IsNullOrWhiteSpace(Setup) && !string.IsNullOrWhiteSpace(settings.DefaultSetup))
+            Setup = settings.DefaultSetup;
+        if (string.IsNullOrWhiteSpace(Strategy) && !string.IsNullOrWhiteSpace(settings.DefaultStrategy))
+            Strategy = settings.DefaultStrategy;
     }
 
     // ══════════════════════ Public API ══════════════════════
@@ -307,21 +349,10 @@ public sealed class TradeFormViewModel : ViewModelBase
         StopLoss = trade.StopLoss;
         TakeProfit = trade.TakeProfit;
 
-        PositionSize = trade.PositionSize;
-        Fees = trade.Fees;
-        Commission = trade.Commission;
-        Swap = trade.Swap;
-        Slippage = trade.Slippage;
-
-        GrossPnl = trade.GrossPnl;
-        NetPnl = trade.NetPnl;
-
         RiskAmount = trade.RiskAmount;
-        RiskR = trade.RiskR;
-        ResultR = trade.ResultR;
-
         AccountBalanceBefore = trade.AccountBalanceBefore;
-        AccountBalanceAfter = trade.AccountBalanceAfter;
+
+        // PnL, ResultR y BalanceAfter se auto-calculan desde precios + riesgo
 
         EmotionBefore = trade.EmotionBefore;
         EmotionAfter = trade.EmotionAfter;
@@ -375,11 +406,7 @@ public sealed class TradeFormViewModel : ViewModelBase
             {
                 Index = idx++,
                 ExitPrice = p.ExitPrice,
-                Quantity = p.Quantity,
-                RealizedPnl = p.RealizedPnl,
                 PercentClosed = p.PercentClosed,
-                ClosedDate = p.ClosedAt.UtcDateTime.Date,
-                MovedToBreakeven = p.MovedToBreakeven,
                 Notes = p.Notes
             });
         }
@@ -406,21 +433,21 @@ public sealed class TradeFormViewModel : ViewModelBase
         TakeProfit = null;
         RiskRewardDisplay = null;
 
-        PositionSize = null;
-        Fees = null;
-        Commission = null;
-        Swap = null;
-        Slippage = null;
-
-        GrossPnl = 0;
-        NetPnl = 0;
+        _grossPnl = 0;
+        _netPnl = 0;
+        _resultR = null;
+        _riskR = null;
+        _accountBalanceAfter = null;
+        OnPropertyChanged(nameof(GrossPnl));
+        OnPropertyChanged(nameof(NetPnl));
+        OnPropertyChanged(nameof(ResultR));
+        OnPropertyChanged(nameof(RiskR));
+        OnPropertyChanged(nameof(AccountBalanceAfter));
 
         RiskAmount = null;
-        RiskR = null;
-        ResultR = null;
-
+        _riskPercent = null;
+        OnPropertyChanged(nameof(RiskPercent));
         AccountBalanceBefore = null;
-        AccountBalanceAfter = null;
 
         EmotionBefore = null;
         EmotionAfter = null;
@@ -463,8 +490,7 @@ public sealed class TradeFormViewModel : ViewModelBase
     {
         Partials.Add(new PartialTakeProfitItem
         {
-            Index = Partials.Count + 1,
-            ClosedDate = DateTime.UtcNow.Date
+            Index = Partials.Count + 1
         });
     }
 
@@ -537,17 +563,11 @@ public sealed class TradeFormViewModel : ViewModelBase
             StopLoss = StopLoss,
             TakeProfit = TakeProfit,
 
-            PositionSize = PositionSize,
-            Fees = Fees,
-            Commission = Commission,
-            Swap = Swap,
-            Slippage = Slippage,
-
             GrossPnl = GrossPnl,
             NetPnl = NetPnl,
 
             RiskAmount = RiskAmount,
-            RiskR = RiskR,
+            RiskR = RiskRewardDisplay,
             ResultR = ResultR,
 
             AccountBalanceBefore = AccountBalanceBefore,
@@ -581,11 +601,10 @@ public sealed class TradeFormViewModel : ViewModelBase
             req.Partials.Add(new TradePartialDto
             {
                 ExitPrice = p.ExitPrice,
-                Quantity = p.Quantity,
-                RealizedPnl = p.RealizedPnl,
+                Quantity = 0,
+                RealizedPnl = 0,
                 PercentClosed = p.PercentClosed,
-                ClosedAt = new DateTimeOffset(p.ClosedDate, TimeSpan.Zero),
-                MovedToBreakeven = p.MovedToBreakeven,
+                ClosedAt = CloseDate.HasValue ? new DateTimeOffset(CloseDate.Value, TimeSpan.Zero) : DateTimeOffset.UtcNow,
                 Notes = p.Notes
             });
         }
@@ -630,5 +649,84 @@ public sealed class TradeFormViewModel : ViewModelBase
         var reward = Math.Abs(TakeProfit.Value - EntryPrice);
 
         RiskRewardDisplay = risk > 0 ? Math.Round(reward / risk, 2) : null;
+    }
+
+    /// <summary>
+    /// Auto-calcula PnL bruto/neto y ResultR a partir de precios y riesgo.
+    /// Fórmula: ResultR = movimiento / distancia_riesgo, PnL = ResultR × RiskAmount.
+    /// </summary>
+    private void RecalculatePnL()
+    {
+        if (!ExitPrice.HasValue || !StopLoss.HasValue || EntryPrice == 0)
+        {
+            GrossPnl = 0;
+            NetPnl = 0;
+            ResultR = null;
+            RecalculateBalance();
+            return;
+        }
+
+        var riskDistance = Math.Abs(EntryPrice - StopLoss.Value);
+        if (riskDistance == 0)
+        {
+            GrossPnl = 0;
+            NetPnl = 0;
+            ResultR = null;
+            RecalculateBalance();
+            return;
+        }
+
+        // Movimiento según dirección del trade
+        var moveDistance = SelectedSide == TradeSide.Buy
+            ? ExitPrice.Value - EntryPrice
+            : EntryPrice - ExitPrice.Value;
+
+        // Resultado en múltiplos de R
+        var resultR = Math.Round(moveDistance / riskDistance, 4);
+        ResultR = resultR;
+
+        // Si el usuario proporcionó el monto de riesgo en $, calculamos PnL en $
+        if (RiskAmount.HasValue && RiskAmount.Value > 0)
+        {
+            GrossPnl = Math.Round(resultR * RiskAmount.Value, 2);
+            NetPnl = GrossPnl; // Sin costos para traders comunes
+        }
+        else
+        {
+            GrossPnl = 0;
+            NetPnl = 0;
+        }
+
+        RecalculateBalance();
+    }
+
+    /// <summary>
+    /// Auto-calcula el balance posterior: BalanceAfter = BalanceBefore + NetPnl.
+    /// </summary>
+    private void RecalculateBalance()
+    {
+        if (AccountBalanceBefore.HasValue && NetPnl != 0)
+            AccountBalanceAfter = Math.Round(AccountBalanceBefore.Value + NetPnl, 2);
+        else
+            AccountBalanceAfter = null;
+    }
+
+    /// <summary>
+    /// Cuando el usuario cambia el % de riesgo, calcula el monto en $.
+    /// </summary>
+    private void RecalculateRiskFromPercent()
+    {
+        if (!RiskAsPercent) return;
+        if (RiskPercent.HasValue && AccountBalanceBefore.HasValue && AccountBalanceBefore.Value > 0)
+            RiskAmount = Math.Round(AccountBalanceBefore.Value * RiskPercent.Value / 100m, 2);
+    }
+
+    /// <summary>
+    /// Cuando el usuario cambia el modo de riesgo, recalcula según corresponda.
+    /// </summary>
+    private void RecalculateRiskFromMode()
+    {
+        if (RiskAsPercent)
+            RecalculateRiskFromPercent();
     }
 }

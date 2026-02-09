@@ -10,6 +10,33 @@ public sealed class SettingsViewModel : ViewModelBase
 {
     private readonly ISettingsService _svc;
 
+    // ═══════════════════════ Tema ═══════════════════════
+
+    private bool _isDarkMode = true;
+    public bool IsDarkMode
+    {
+        get => _isDarkMode;
+        set
+        {
+            if (SetProperty(ref _isDarkMode, value))
+                ThemeChanged?.Invoke(value);
+        }
+    }
+
+    /// <summary>Evento para que App.xaml.cs cambie los ResourceDictionaries.</summary>
+    public event Action<bool>? ThemeChanged;
+
+    // ═══════════════════════ Parámetros Dinámicos ═══════════════════════
+
+    private string _defaultSetup = "";
+    public string DefaultSetup { get => _defaultSetup; set => SetProperty(ref _defaultSetup, value); }
+
+    private string _defaultStrategy = "";
+    public string DefaultStrategy { get => _defaultStrategy; set => SetProperty(ref _defaultStrategy, value); }
+
+    private string _defaultContext = "";
+    public string DefaultContext { get => _defaultContext; set => SetProperty(ref _defaultContext, value); }
+
     // ═══════════════════════ Timeframes ═══════════════════════
 
     public ObservableCollection<string> Timeframes { get; } = new();
@@ -135,17 +162,23 @@ public sealed class SettingsViewModel : ViewModelBase
             DefaultAccountBalance = settings.DefaultAccountBalance;
             BaseCurrency = settings.BaseCurrency;
 
+            // Load dynamic defaults
+            DefaultSetup = settings.DefaultSetup ?? "";
+            DefaultStrategy = settings.DefaultStrategy ?? "";
+            DefaultContext = settings.DefaultContext ?? "";
+            IsDarkMode = settings.IsDarkMode;
+
             // Load checklist rules
             var rules = await _svc.GetAllRulesAsync();
             ChecklistRules.Clear();
             foreach (var r in rules)
                 ChecklistRules.Add(r);
 
-            StatusText = $"Settings loaded · {Timeframes.Count} timeframes · {ChecklistRules.Count} rules";
+            StatusText = $"Ajustes cargados · {Timeframes.Count} temporalidades · {ChecklistRules.Count} reglas";
         }
         catch (Exception ex)
         {
-            StatusText = $"Error loading settings: {ex.Message}";
+            StatusText = $"Error cargando ajustes: {ex.Message}";
         }
     }
 
@@ -266,8 +299,12 @@ public sealed class SettingsViewModel : ViewModelBase
             settings.DefaultRiskPercent = DefaultRiskPercent;
             settings.DefaultAccountBalance = DefaultAccountBalance;
             settings.BaseCurrency = BaseCurrency;
+            settings.DefaultSetup = string.IsNullOrWhiteSpace(DefaultSetup) ? null : DefaultSetup.Trim();
+            settings.DefaultStrategy = string.IsNullOrWhiteSpace(DefaultStrategy) ? null : DefaultStrategy.Trim();
+            settings.DefaultContext = string.IsNullOrWhiteSpace(DefaultContext) ? null : DefaultContext.Trim();
+            settings.IsDarkMode = IsDarkMode;
             await _svc.SaveSettingsAsync(settings);
-            StatusText = "✓ Preferences saved";
+            StatusText = "✓ Preferencias guardadas";
         }
         catch (Exception ex)
         {

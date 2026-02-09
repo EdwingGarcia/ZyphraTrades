@@ -1,0 +1,139 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ZYPHRATRADES · MODO CLARO  (Zinc-50 base)
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Fondos -->
+    <Color x:Key="ThemeBg0">#FAFAFA</Color>
+    <!-- zinc-50 -->
+    <Color x:Key="ThemeBg1">#FFFFFF</Color>
+    <!-- white -->
+    <Color x:Key="ThemeBg2">#F4F4F5</Color>
+    <!-- zinc-100 -->
+    <Color x:Key="ThemeBg3">#E4E4E7</Color>
+    <!-- zinc-200 -->
+    <Color x:Key="ThemeStroke">#D4D4D8</Color>
+    <!-- zinc-300 -->
+    <Color x:Key="ThemeStrokeLight">#A1A1AA</Color>
+    <!-- zinc-400 -->
+
+    <!-- Texto -->
+    <Color x:Key="ThemeFg">#18181B</Color>
+    <!-- zinc-900 -->
+    <Color x:Key="ThemeFgSecondary">#3F3F46</Color>
+    <!-- zinc-700 -->
+    <Color x:Key="ThemeMuted">#71717A</Color>
+    <!-- zinc-500 -->
+
+    <!-- Acentos -->
+    <Color x:Key="ThemeAccent">#E11D48</Color>
+    <!-- rose-600 -->
+    <Color x:Key="ThemeAccentHover">#BE123C</Color>
+    <!-- rose-700 -->
+
+    <!-- Trade Ganador -->
+    <Color x:Key="ThemeWinBorder">#6EE7B7</Color>
+    <!-- emerald-300 -->
+    <Color x:Key="ThemeWinText">#059669</Color>
+    <!-- emerald-600 -->
+    <Color x:Key="ThemeWinBg">#ECFDF5</Color>
+    <!-- emerald-50 -->
+
+    <!-- Trade Perdedor -->
+    <Color x:Key="ThemeLossBorder">#FCA5A5</Color>
+    <!-- red-300 -->
+    <Color x:Key="ThemeLossText">#DC2626</Color>
+    <!-- red-600 -->
+    <Color x:Key="ThemeLossBg">#FEF2F2</Color>
+    <!-- red-50 -->
+
+    <!-- Categorías de Trade -->
+    <Color x:Key="ThemeCatScalping">#2563EB</Color>
+    <!-- blue-600 -->
+    <Color x:Key="ThemeCatSwing">#9333EA</Color>
+    <!-- purple-600 -->
+    <Color x:Key="ThemeCatIntraday">#CA8A04</Color>
+    <!-- yellow-600 -->
+    <Color x:Key="ThemeCatPosition">#0D9488</Color>
+    <!-- teal-600 -->
+    <Color x:Key="ThemeCatDefault">#4F46E5</Color>
+    <!-- indigo-600 -->
+
+    <!-- Timeframe Cards -->
+    <Color x:Key="ThemeTfCardBg">#FFFFFF</Color>
+    <!-- white -->
+    <Color x:Key="ThemeTfCardBorder">#E4E4E7</Color>
+    <!-- zinc-200 -->
+
+    <!-- Utilities -->
+    <Color x:Key="ThemeCyan">#9B3A4A</Color>
+    <!-- wine -->
+    <Color x:Key="ThemeAmber">#D97706</Color>
+    <!-- amber-600 -->
+    <Color x:Key="ThemeWine">#722F37</Color>
+    <Color x:Key="ThemeWineLight">#9B4054</Color>
+    <Color x:Key="ThemeWineDark">#4A1526</Color>
+
+    <!-- ═══ Brushes ═══ -->
+    <SolidColorBrush x:Key="ThemeBg0B"
+                     Color="{StaticResource ThemeBg0}"/>
+    <SolidColorBrush x:Key="ThemeBg1B"
+                     Color="{StaticResource ThemeBg1}"/>
+    <SolidColorBrush x:Key="ThemeBg2B"
+                     Color="{StaticResource ThemeBg2}"/>
+    <SolidColorBrush x:Key="ThemeBg3B"
+                     Color="{StaticResource ThemeBg3}"/>
+    <SolidColorBrush x:Key="ThemeStrokeB"
+                     Color="{StaticResource ThemeStroke}"/>
+    <SolidColorBrush x:Key="ThemeStrokeLightB"
+                     Color="{StaticResource ThemeStrokeLight}"/>
+    <SolidColorBrush x:Key="ThemeFgB"
+                     Color="{StaticResource ThemeFg}"/>
+    <SolidColorBrush x:Key="ThemeFgSecondaryB"
+                     Color="{StaticResource ThemeFgSecondary}"/>
+    <SolidColorBrush x:Key="ThemeMutedB"
+                     Color="{StaticResource ThemeMuted}"/>
+    <SolidColorBrush x:Key="ThemeAccentB"
+                     Color="{StaticResource ThemeAccent}"/>
+    <SolidColorBrush x:Key="ThemeAccentHoverB"
+                     Color="{StaticResource ThemeAccentHover}"/>
+    <SolidColorBrush x:Key="ThemeWinBorderB"
+                     Color="{StaticResource ThemeWinBorder}"/>
+    <SolidColorBrush x:Key="ThemeWinTextB"
+                     Color="{StaticResource ThemeWinText}"/>
+    <SolidColorBrush x:Key="ThemeWinBgB"
+                     Color="{StaticResource ThemeWinBg}"/>
+    <SolidColorBrush x:Key="ThemeLossBorderB"
+                     Color="{StaticResource ThemeLossBorder}"/>
+    <SolidColorBrush x:Key="ThemeLossTextB"
+                     Color="{StaticResource ThemeLossText}"/>
+    <SolidColorBrush x:Key="ThemeLossBgB"
+                     Color="{StaticResource ThemeLossBg}"/>
+    <SolidColorBrush x:Key="ThemeCatScalpingB"
+                     Color="{StaticResource ThemeCatScalping}"/>
+    <SolidColorBrush x:Key="ThemeCatSwingB"
+                     Color="{StaticResource ThemeCatSwing}"/>
+    <SolidColorBrush x:Key="ThemeCatIntradayB"
+                     Color="{StaticResource ThemeCatIntraday}"/>
+    <SolidColorBrush x:Key="ThemeCatPositionB"
+                     Color="{StaticResource ThemeCatPosition}"/>
+    <SolidColorBrush x:Key="ThemeCatDefaultB"
+                     Color="{StaticResource ThemeCatDefault}"/>
+    <SolidColorBrush x:Key="ThemeTfCardBgB"
+                     Color="{StaticResource ThemeTfCardBg}"/>
+    <SolidColorBrush x:Key="ThemeTfCardBorderB"
+                     Color="{StaticResource ThemeTfCardBorder}"/>
+    <SolidColorBrush x:Key="ThemeCyanB"
+                     Color="{StaticResource ThemeCyan}"/>
+    <SolidColorBrush x:Key="ThemeAmberB"
+                     Color="{StaticResource ThemeAmber}"/>
+    <SolidColorBrush x:Key="ThemeWineB"
+                     Color="{StaticResource ThemeWine}"/>
+    <SolidColorBrush x:Key="ThemeWineLightB"
+                     Color="{StaticResource ThemeWineLight}"/>
+    <SolidColorBrush x:Key="ThemeWineDarkB"
+                     Color="{StaticResource ThemeWineDark}"/>
+
+</ResourceDictionary>

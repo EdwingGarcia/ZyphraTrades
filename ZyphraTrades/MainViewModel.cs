@@ -5,6 +5,11 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Data;
 using System.Windows.Input;
+using LiveChartsCore;
+using LiveChartsCore.Defaults;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
+using SkiaSharp;
 using ZyphraTrades.Application.DTOs;
 using ZyphraTrades.Application.Services;
 using ZyphraTrades.Domain.Entities;
@@ -92,8 +97,40 @@ public class MainViewModel : ViewModelBase
 
     // ══════════════════════ Status Bar ══════════════════════
 
-    private string _statusText = "Ready";
+    private string _statusText = "Listo";
     public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
+
+    // ══════════════════════ Chart Data ══════════════════════
+
+    private ISeries[] _equitySeries = Array.Empty<ISeries>();
+    public ISeries[] EquitySeries { get => _equitySeries; set => SetProperty(ref _equitySeries, value); }
+
+    private Axis[] _equityXAxes = Array.Empty<Axis>();
+    public Axis[] EquityXAxes { get => _equityXAxes; set => SetProperty(ref _equityXAxes, value); }
+
+    private ISeries[] _pnlBarSeries = Array.Empty<ISeries>();
+    public ISeries[] PnlBarSeries { get => _pnlBarSeries; set => SetProperty(ref _pnlBarSeries, value); }
+
+    private ISeries[] _monthlyPnlSeries = Array.Empty<ISeries>();
+    public ISeries[] MonthlyPnlSeries { get => _monthlyPnlSeries; set => SetProperty(ref _monthlyPnlSeries, value); }
+
+    private Axis[] _monthlyXAxes = Array.Empty<Axis>();
+    public Axis[] MonthlyXAxes { get => _monthlyXAxes; set => SetProperty(ref _monthlyXAxes, value); }
+
+    private ISeries[] _winLossSeries = Array.Empty<ISeries>();
+    public ISeries[] WinLossSeries { get => _winLossSeries; set => SetProperty(ref _winLossSeries, value); }
+
+    private ISeries[] _rDistributionSeries = Array.Empty<ISeries>();
+    public ISeries[] RDistributionSeries { get => _rDistributionSeries; set => SetProperty(ref _rDistributionSeries, value); }
+
+    private Axis[] _rDistXAxes = Array.Empty<Axis>();
+    public Axis[] RDistXAxes { get => _rDistXAxes; set => SetProperty(ref _rDistXAxes, value); }
+
+    private ISeries[] _dayOfWeekSeries = Array.Empty<ISeries>();
+    public ISeries[] DayOfWeekSeries { get => _dayOfWeekSeries; set => SetProperty(ref _dayOfWeekSeries, value); }
+
+    private Axis[] _dayOfWeekXAxes = Array.Empty<Axis>();
+    public Axis[] DayOfWeekXAxes { get => _dayOfWeekXAxes; set => SetProperty(ref _dayOfWeekXAxes, value); }
 
     // ══════════════════════ Commands ══════════════════════
 
@@ -118,7 +155,7 @@ public class MainViewModel : ViewModelBase
             {
                 _ = LoadAsync();
                 CurrentPage = "Trades";
-                StatusText = "Trade saved ✔";
+                StatusText = "Trade guardado ✔";
             },
             OnError = msg => StatusText = $"Error: {msg}"
         };
@@ -149,7 +186,7 @@ public class MainViewModel : ViewModelBase
     {
         try
         {
-            StatusText = "Loading trades…";
+            StatusText = "Cargando trades…";
             Trades.Clear();
 
             var items = await _svc.GetAllAsync();
@@ -159,7 +196,7 @@ public class MainViewModel : ViewModelBase
             SelectedTrade = Trades.FirstOrDefault();
             TradesView.Refresh();
             RecalculateStats();
-            StatusText = $"Loaded {Trades.Count} trades";
+            StatusText = $"{Trades.Count} trades cargados";
         }
         catch (Exception ex)
         {
@@ -182,6 +219,178 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(AvgHoldTimeText));
         OnPropertyChanged(nameof(LongestHoldText));
         OnPropertyChanged(nameof(ShortestHoldText));
+        BuildChartData(visible);
+    }
+
+    // ══════════════════════ Chart Builders ══════════════════════
+
+    private static readonly SKColor WinColor = new(34, 197, 94);    // verde
+    private static readonly SKColor LossColor = new(239, 68, 68);   // rojo
+    private static readonly SKColor BeColor = new(234, 179, 8);     // amarillo
+    private static readonly SKColor AccentColor = new(155, 58, 74); // wine (#9B3A4A)
+    private static readonly SKColor WineLight = new(212, 85, 107);  // wine-light (#D4556B)
+
+    private void BuildChartData(List<Trade> trades)
+    {
+        var closed = trades.Where(t => t.Status == TradeStatus.Closed)
+                           .OrderBy(t => t.ClosedAt ?? t.OpenedAt)
+                           .ToList();
+
+        // ── 1. Curva de Equidad (línea) ──
+        var equityPoints = new List<ObservablePoint>();
+        decimal cumPnl = 0;
+        for (int i = 0; i < closed.Count; i++)
+        {
+            cumPnl += closed[i].NetPnl;
+            equityPoints.Add(new ObservablePoint(i + 1, (double)cumPnl));
+        }
+        EquitySeries = new ISeries[]
+        {
+            new LineSeries<ObservablePoint>
+            {
+                Values = equityPoints,
+                Fill = new SolidColorPaint(WineLight.WithAlpha(30)),
+                Stroke = new SolidColorPaint(WineLight, 2),
+                GeometrySize = 0,
+                LineSmoothness = 0.3,
+                Name = "Equidad ($)"
+            }
+        };
+
+        // ── 2. PnL por Trade (barras) ──
+        var pnlBars = closed.Select(t =>
+            new ObservableValue((double)t.NetPnl)).ToList();
+        PnlBarSeries = new ISeries[]
+        {
+            new ColumnSeries<ObservableValue>
+            {
+                Values = pnlBars,
+                Name = "PnL por Trade",
+                Mapping = (v, i) => new LiveChartsCore.Kernel.Coordinate(i, v.Value ?? 0),
+                Fill = null, // will use conditional below
+            }
+        };
+        // Color dinámico: verde si > 0, rojo si < 0
+        var pnlBarColors = closed.Select(t => t.NetPnl >= 0
+            ? new SolidColorPaint(WinColor)
+            : new SolidColorPaint(LossColor)).ToArray();
+        PnlBarSeries = new ISeries[]
+        {
+            new ColumnSeries<double>
+            {
+                Values = closed.Select(t => (double)t.NetPnl).ToArray(),
+                Name = "PnL",
+                Fill = new SolidColorPaint(AccentColor),
+            }
+        };
+
+        // ── 3. Rendimiento Mensual (barras) ──
+        var monthGroups = closed
+            .GroupBy(t => (t.ClosedAt ?? t.OpenedAt).ToString("yyyy-MM"))
+            .OrderBy(g => g.Key)
+            .ToList();
+        var monthLabels = monthGroups.Select(g => g.Key).ToArray();
+        var monthValues = monthGroups.Select(g => (double)g.Sum(t => t.NetPnl)).ToArray();
+        MonthlyPnlSeries = new ISeries[]
+        {
+            new ColumnSeries<double>
+            {
+                Values = monthValues,
+                Name = "PnL Mensual",
+                Fill = new SolidColorPaint(AccentColor),
+            }
+        };
+        MonthlyXAxes = new Axis[]
+        {
+            new Axis
+            {
+                Labels = monthLabels,
+                LabelsRotation = 45,
+                TextSize = 10,
+                LabelsPaint = new SolidColorPaint(new SKColor(160, 160, 160))
+            }
+        };
+
+        // ── 4. Win / Loss / BE (pie) ──
+        var wins = closed.Count(t => t.NetPnl > 0);
+        var losses = closed.Count(t => t.NetPnl < 0);
+        var bes = closed.Count(t => t.NetPnl == 0);
+        WinLossSeries = new ISeries[]
+        {
+            new PieSeries<int> { Values = new[] { wins }, Name = "Ganadas", Fill = new SolidColorPaint(WinColor) },
+            new PieSeries<int> { Values = new[] { losses }, Name = "Perdidas", Fill = new SolidColorPaint(LossColor) },
+            new PieSeries<int> { Values = new[] { bes }, Name = "Break-Even", Fill = new SolidColorPaint(BeColor) }
+        };
+
+        // ── 5. Distribución de R (histograma) ──
+        var rValues = closed.Where(t => t.ResultR.HasValue).Select(t => t.ResultR!.Value).ToList();
+        if (rValues.Count > 0)
+        {
+            var minR = Math.Floor((double)rValues.Min());
+            var maxR = Math.Ceiling((double)rValues.Max());
+            var buckets = new Dictionary<string, int>();
+            for (double b = minR; b < maxR; b += 0.5)
+            {
+                var label = $"{b:0.0}";
+                var count = rValues.Count(r => (double)r >= b && (double)r < b + 0.5);
+                buckets[label] = count;
+            }
+            RDistributionSeries = new ISeries[]
+            {
+                new ColumnSeries<int>
+                {
+                    Values = buckets.Values.ToArray(),
+                    Name = "Frecuencia R",
+                    Fill = new SolidColorPaint(AccentColor),
+                }
+            };
+            RDistXAxes = new Axis[]
+            {
+                new Axis
+                {
+                    Labels = buckets.Keys.ToArray(),
+                    LabelsRotation = 45,
+                    TextSize = 10,
+                    LabelsPaint = new SolidColorPaint(new SKColor(160, 160, 160))
+                }
+            };
+        }
+
+        // ── 6. PnL por Día de la Semana ──
+        var dayNames = new[] { "Lun", "Mar", "Mié", "Jue", "Vie" };
+        var dayValues = new double[5];
+        foreach (var t in closed)
+        {
+            var dow = (t.ClosedAt ?? t.OpenedAt).DayOfWeek;
+            var idx = dow switch
+            {
+                DayOfWeek.Monday => 0,
+                DayOfWeek.Tuesday => 1,
+                DayOfWeek.Wednesday => 2,
+                DayOfWeek.Thursday => 3,
+                DayOfWeek.Friday => 4,
+                _ => -1
+            };
+            if (idx >= 0) dayValues[idx] += (double)t.NetPnl;
+        }
+        DayOfWeekSeries = new ISeries[]
+        {
+            new ColumnSeries<double>
+            {
+                Values = dayValues,
+                Name = "PnL por Día",
+                Fill = new SolidColorPaint(AccentColor),
+            }
+        };
+        DayOfWeekXAxes = new Axis[]
+        {
+            new Axis
+            {
+                Labels = dayNames,
+                TextSize = 11,
+                LabelsPaint = new SolidColorPaint(new SKColor(160, 160, 160))
+            }
+        };
     }
 
     // ══════════════════════ Filters ══════════════════════
@@ -190,7 +399,7 @@ public class MainViewModel : ViewModelBase
     {
         TradesView.Refresh();
         RecalculateStats();
-        StatusText = "Filter applied";
+        StatusText = "Filtro aplicado";
         return Task.CompletedTask;
     }
 
@@ -203,7 +412,7 @@ public class MainViewModel : ViewModelBase
         ToDate = null;
         TradesView.Refresh();
         RecalculateStats();
-        StatusText = "Filters cleared";
+        StatusText = "Filtros limpiados";
     }
 
     private bool FilterTrade(object obj)
@@ -236,10 +445,10 @@ public class MainViewModel : ViewModelBase
         if (SelectedTrade == null) return;
         try
         {
-            StatusText = "Deleting trade…";
+            StatusText = "Eliminando trade…";
             await _svc.DeleteAsync(SelectedTrade.Id);
             await LoadAsync();
-            StatusText = "Trade deleted ✔";
+            StatusText = "Trade eliminado ✔";
         }
         catch (Exception ex)
         {
@@ -252,7 +461,7 @@ public class MainViewModel : ViewModelBase
         if (SelectedTrade == null) return;
         await TradeForm.LoadForEdit(SelectedTrade);
         CurrentPage = "AddTrade";
-        StatusText = $"Editing {SelectedTrade.Symbol} trade";
+        StatusText = $"Editando trade de {SelectedTrade.Symbol}";
     }
 
     // ══════════════════════ Export ══════════════════════
@@ -261,7 +470,7 @@ public class MainViewModel : ViewModelBase
     {
         try
         {
-            StatusText = "Exporting CSV…";
+            StatusText = "Exportando CSV…";
 
             var exportDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
@@ -300,7 +509,7 @@ public class MainViewModel : ViewModelBase
                 sw.WriteLine(line);
             }
 
-            StatusText = $"CSV exported: {file}";
+            StatusText = $"CSV exportado: {file}";
             await Task.CompletedTask;
         }
         catch (Exception ex)

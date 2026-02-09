@@ -23,6 +23,18 @@ public class UserSettings
     /// <summary>Preferred base currency (USD, EUR, etc.).</summary>
     public string BaseCurrency { get; set; } = "USD";
 
+    /// <summary>Tema oscuro por defecto.</summary>
+    public bool IsDarkMode { get; set; } = true;
+
+    /// <summary>Setup por defecto para nuevos trades (ej: Break &amp; Retest).</summary>
+    public string? DefaultSetup { get; set; }
+
+    /// <summary>Estrategia por defecto (ej: Smart Money Concepts).</summary>
+    public string? DefaultStrategy { get; set; }
+
+    /// <summary>Contexto de mercado por defecto.</summary>
+    public string? DefaultContext { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 

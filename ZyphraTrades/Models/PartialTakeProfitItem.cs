@@ -4,30 +4,26 @@ namespace ZyphraTrades.Presentation.Models;
 
 /// <summary>
 /// View-model for a single partial take-profit entry in the trade form.
+/// Simplified: only % of position, price or RR, and optional notes.
 /// </summary>
 public sealed class PartialTakeProfitItem : ViewModelBase
 {
     private int _index;
     public int Index { get => _index; set => SetProperty(ref _index, value); }
 
-    private decimal _exitPrice;
-    public decimal ExitPrice { get => _exitPrice; set => SetProperty(ref _exitPrice, value); }
-
-    private decimal _quantity;
-    public decimal Quantity { get => _quantity; set => SetProperty(ref _quantity, value); }
-
-    private decimal _realizedPnl;
-    public decimal RealizedPnl { get => _realizedPnl; set => SetProperty(ref _realizedPnl, value); }
-
+    /// <summary>Percentage of the position closed in this partial (0-100).</summary>
     private decimal _percentClosed;
     public decimal PercentClosed { get => _percentClosed; set => SetProperty(ref _percentClosed, value); }
 
-    private DateTime _closedDate = DateTime.UtcNow.Date;
-    public DateTime ClosedDate { get => _closedDate; set => SetProperty(ref _closedDate, value); }
+    /// <summary>Exit price for this partial closure.</summary>
+    private decimal _exitPrice;
+    public decimal ExitPrice { get => _exitPrice; set => SetProperty(ref _exitPrice, value); }
 
-    private bool _movedToBreakeven;
-    public bool MovedToBreakeven { get => _movedToBreakeven; set => SetProperty(ref _movedToBreakeven, value); }
+    /// <summary>R-multiple at which this partial was taken (alternative to exit price).</summary>
+    private decimal? _exitRR;
+    public decimal? ExitRR { get => _exitRR; set => SetProperty(ref _exitRR, value); }
 
+    /// <summary>Optional notes for this partial.</summary>
     private string? _notes;
     public string? Notes { get => _notes; set => SetProperty(ref _notes, value); }
 }

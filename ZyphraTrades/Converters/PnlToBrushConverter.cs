@@ -1,20 +1,30 @@
 using System.Globalization;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 
 namespace ZyphraTrades.Presentation.Converters;
 
+/// <summary>
+/// Convierte un valor PnL decimal al color de texto del tema activo.
+/// Positivo → ThemeWinTextB, Negativo → ThemeLossTextB, Neutro → ThemeMutedB.
+/// </summary>
 public class PnlToBrushConverter : IValueConverter
 {
-    private static readonly SolidColorBrush Positive = new(Color.FromRgb(0x22, 0xC5, 0x5E));
-    private static readonly SolidColorBrush Negative = new(Color.FromRgb(0xE1, 0x1D, 0x48));
-    private static readonly SolidColorBrush Neutral = new(Color.FromRgb(0xA8, 0xA8, 0xB3));
+    private static readonly SolidColorBrush FallbackPositive = new(Color.FromRgb(0x34, 0xD3, 0x99));
+    private static readonly SolidColorBrush FallbackNegative = new(Color.FromRgb(0xF8, 0x71, 0x71));
+    private static readonly SolidColorBrush FallbackNeutral = new(Color.FromRgb(0x94, 0xA3, 0xB8));
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is decimal d)
-            return d > 0 ? Positive : d < 0 ? Negative : Neutral;
-        return Neutral;
+        {
+            if (d > 0)
+                return System.Windows.Application.Current.TryFindResource("ThemeWinTextB") as SolidColorBrush ?? FallbackPositive;
+            if (d < 0)
+                return System.Windows.Application.Current.TryFindResource("ThemeLossTextB") as SolidColorBrush ?? FallbackNegative;
+        }
+        return System.Windows.Application.Current.TryFindResource("ThemeMutedB") as SolidColorBrush ?? FallbackNeutral;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
